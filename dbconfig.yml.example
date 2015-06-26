@@ -1,0 +1,8 @@
+development:
+    dialect: mysql
+    datasource: homestead:secret@127.0.0.1:33060/pcdsh
+    dir: migrations
+production:
+    dialect: mysql
+    datasource: user:password@localhost/pcdsh
+    dir: migrations
