@@ -37,11 +37,6 @@ func main() {
 
 	api := gopencils.Api(configuration.BaseUrl)
 	resp := new(RespStruct)
-	// TODO: Check local database and last index
-	// TODO: Check api overview and last index
-	// TODO: Calculate offset/count
-	// TODO: Do padding of 10 logs? How many could be generated while we do this?
-
 	logsOut, err := db.Prepare("SELECT `index` FROM `logs` ORDER BY `index` DESC LIMIT 1")
 	if err != nil {
 		fmt.Println(err.Error())
@@ -52,14 +47,14 @@ func main() {
 
 	err = logsOut.QueryRow().Scan(&index)
 	if err != nil {
-		fmt.Println(err.Error()) // proper error handling instead of panic in your app
+		fmt.Println(err.Error())
 	}
 	fmt.Printf("The index number is: %d\n", index)
 	_, err = api.Res("log/overview", resp).Get()
 
 	firstLog := resp.Response["first"].(float64)
 	logCount := resp.Response["count"].(float64) + firstLog
-	count := strconv.Itoa(int(int64(logCount) - index))
+	count := strconv.Itoa(int(int64(logCount) - index) + 10)
 
 	querystring := map[string]string{"offset": "-" + count, "count": count}
 
@@ -81,15 +76,29 @@ func main() {
 		defer logAttributesIns.Close()
 
 		for _, event := range resp.Response["events"].([]interface{}) {
-			// TODO: Check if index is already added
-			// TODO: continue if already added
 			event, _ := event.(map[string]interface{})
 
 			if int64(event["index"].(float64)) <= index {
 				continue
 			}
 
-			result, err := logsIns.Exec(nil, event["index"].(float64), time.Unix(int64(event["time"].(float64)), 0), event["name"].(string), event["refid"].(float64), event["participantid"].(float64)) // Insert tuples (i, i^2)
+			var refid float64
+			switch event["refid"].(type) {
+				case float64:
+				refid = event["refid"].(float64)
+				default:
+				refid = 0
+			}
+
+			var participantid float64
+			switch event["participantid"].(type) {
+				case float64:
+				participantid = event["participantid"].(float64)
+				default:
+				participantid = 0
+			}
+
+			result, err := logsIns.Exec(nil, event["index"].(float64), time.Unix(int64(event["time"].(float64)), 0), event["name"].(string), refid, participantid)
 			if err != nil {
 				fmt.Println(err.Error())
 			}
