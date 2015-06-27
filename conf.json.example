@@ -1,4 +1,4 @@
 {
   "BaseUrl": "http://127.0.0.1:9000/api/",
-  "Datasource": "homestead:secret@127.0.0.1:33060/pcdsh"
+  "Datasource": "homestead:secret@tcp(127.0.0.1:33060)/pcdsh?parseTime=true"
 }
