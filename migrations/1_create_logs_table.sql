@@ -3,10 +3,14 @@ CREATE TABLE logs (
   id int not null auto_increment,
   `index` int not null,
   time timestamp not null,
-  name text not null,
+  name varchar(255) not null,
   refid int,
   participantid int,
-  primary key (id)
+  primary key (id),
+  index (time),
+  index (name),
+  index (refid),
+  unique key `index` (`index`)
 );
 
 -- +migrate Down

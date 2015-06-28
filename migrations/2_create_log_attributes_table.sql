@@ -1,11 +1,13 @@
 -- +migrate Up
 CREATE TABLE log_attributes (
   id int not null auto_increment,
-  log_id int not null,
-  `key` text,
-  value text,
+  `index` int not null,
+  `key` varchar(255),
+  value varchar(255),
   primary key (id),
-  foreign key (log_id) references logs(id)
+  index (`key`),
+  index (value ),
+  foreign key (`index`) references logs(`index`)
 );
 
 -- +migrate Down
