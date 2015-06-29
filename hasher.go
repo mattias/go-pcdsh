@@ -35,33 +35,27 @@ func hashSessions(configuration Configuration) {
 
 		log.Println(end_time)
 
-		logsOut, err := db.Prepare("SELECT id, time, refid, participantid FROM `logs` WHERE `time` > ? ORDER BY `time` DESC, `index` DESC")
+		logsOut, err := db.Prepare("SELECT id, name, time FROM `logs` WHERE `time` > ? ORDER BY `time` ASC, `index` ASC")
 		if err != nil {
 			log.Println(err.Error())
 		}
 		defer logsOut.Close()
 
-		logAttributesOut, err := db.Prepare("SELECT `key`, value FROM `log_attributes` WHERE log_id = ?")
-		if err != nil {
-			log.Println(err.Error())
-		}
-		defer logAttributesOut.Close()
-
-
-		sessionsIns, err := db.Prepare("INSERT INTO sessions VALUES( ?, ?, ?, ?, ?, ?, ? )")
+		sessionsIns, err := db.Prepare("INSERT INTO sessions VALUES( ?, ?, ?, ?, ?, ? )")
 		if err != nil {
 			log.Println(err.Error())
 		}
 		defer sessionsIns.Close()
 
-
 		var (
-			sessionId int64
-			sessionTime time.Time
-			sessionRefid int64
-			sessionParticipantid int64
-			logAttributeKey string
-			logAttributeValue string
+			logId int64
+			logName string
+			logTime time.Time
+			logCount int64
+			logStartId int64
+			logStartTime time.Time
+			logEndId int64
+			logEndTime time.Time
 		)
 
 		logRows, err := logsOut.Query(end_time)
@@ -70,30 +64,31 @@ func hashSessions(configuration Configuration) {
 		}
 
 		for logRows.Next() {
-			err = logRows.Scan(&sessionId, &sessionTime, &sessionRefid, &sessionParticipantid)
+			err = logRows.Scan(&logId, &logName, &logTime)
 			if err != nil {
 				log.Println(err.Error())
 			}
 
-			log.Printf("%d, %v, %d, %d", sessionId, sessionTime, sessionRefid, sessionParticipantid)
+			logCount++
 
-			logAttributeRows, err := logAttributesOut.Query(sessionId)
-			if err != nil {
-				log.Println(err.Error())
+			if logName == "SessionCreated" {
+				logStartId, logStartTime  = logId, logTime
+				logEndId, logCount = 0, 0 // Reset
+			} else if logName == "SessionDestroyed" {
+				logEndId, logEndTime = logId, logTime
 			}
 
-			for logAttributeRows.Next() {
-				err = logAttributeRows.Scan(&logAttributeKey, &logAttributeValue)
+			if logStartId > 0 && logEndId > 0 {
+				_, err = sessionsIns.Exec(nil, logStartId, logEndId, logStartTime, logEndTime, logCount)
 				if err != nil {
 					log.Println(err.Error())
 				}
-
-				log.Printf("%s: %s", logAttributeKey, logAttributeValue)
+				logStartId, logEndId, logCount = 0, 0, 0
 			}
 		}
 
 		elapsed := time.Since(start)
-		log.Printf("Hasing sessions took %s", elapsed)
+		log.Printf("Hashing sessions took %s", elapsed)
 		log.Println("Hasher idling for 1 hour")
 		time.Sleep(time.Hour)
 	}

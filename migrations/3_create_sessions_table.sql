@@ -6,7 +6,6 @@ CREATE TABLE sessions (
   start_time timestamp not null,
   end_time timestamp not null,
   log_count int,
-  overview text,
   primary key (id),
   foreign key (start_log_id) references logs(id),
   foreign key (end_log_id) references logs(id),

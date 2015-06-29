@@ -9,4 +9,3 @@ type RespStruct struct {
 	Result   string
 	Response map[string]interface{}
 }
-
