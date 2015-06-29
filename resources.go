@@ -14,6 +14,7 @@ func (l LogResource) RegisterTo(container *restful.Container) {
 		Consumes("*/*").
 		Produces("*/*")
 
+	// TODO: Don't use index, it'll reset on server restart
 	ws.Route(ws.GET("/{index}").To(l.nop))
 
 	container.Add(ws)

@@ -26,6 +26,7 @@ func fetchNewData(configuration Configuration) {
 
 		api := gopencils.Api(configuration.BaseUrl)
 		resp := new(RespStruct)
+		// TODO: Don't use index, it'll reset on server restart
 		logsOut, err := db.Prepare("SELECT `index` FROM `logs` ORDER BY `index` DESC LIMIT 1")
 		if err != nil {
 			log.Println(err.Error())
@@ -38,6 +39,7 @@ func fetchNewData(configuration Configuration) {
 		if err != nil {
 			log.Println(err.Error())
 		}
+		// TODO: Don't use index, it'll reset on server restart
 		log.Printf("Last index number was: %d", index)
 		_, err = api.Res("log/overview", resp).Get()
 
@@ -70,6 +72,7 @@ func fetchNewData(configuration Configuration) {
 			for _, event := range resp.Response["events"].([]interface{}) {
 				event, _ := event.(map[string]interface{})
 
+				// TODO: Don't use index, it'll reset on server restart
 				if int64(event["index"].(float64)) <= index {
 					continue
 				}
@@ -105,6 +108,7 @@ func fetchNewData(configuration Configuration) {
 				}
 
 				for key, value := range event["attributes"].(map[string]interface{}) {
+					// TODO: Don't use index, it'll reset on server restart
 					_, err = logAttributesIns.Exec(nil, event["index"].(float64), key, value)
 					if err != nil {
 						log.Println(err.Error())
