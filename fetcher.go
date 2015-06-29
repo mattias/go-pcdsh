@@ -131,7 +131,7 @@ func fetchNewData(configuration Configuration) {
 		log.Printf("Added %d new log entries out of %s fetched ones", entries, finalCount)
 		elapsed := time.Since(start)
 		log.Printf("Fetching data took %s", elapsed)
-		log.Println("Fetcher idling for 1 minute")
-		time.Sleep(time.Minute)
+		log.Println("Fetcher idling for 15 minutes")
+		time.Sleep(15 * time.Minute)
 	}
 }
