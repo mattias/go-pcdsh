@@ -26,34 +26,43 @@ func fetchNewData(configuration Configuration) {
 
 		api := gopencils.Api(configuration.BaseUrl)
 		resp := new(RespStruct)
-		// TODO: Don't use index, it'll reset on server restart
-		logsOut, err := db.Prepare("SELECT `index` FROM `logs` ORDER BY `index` DESC LIMIT 1")
+		logsOut, err := db.Prepare("SELECT `time`, `index` FROM `logs` ORDER BY `time` DESC, `index` DESC LIMIT 1")
 		if err != nil {
 			log.Println(err.Error())
 		}
 		defer logsOut.Close()
 
+		var logEntryTime time.Time
 		var index int64
+		var extraLogs int64 = 10
+		var serverLogLimit int64 = 10000
 
-		err = logsOut.QueryRow().Scan(&index)
+		err = logsOut.QueryRow().Scan(&logEntryTime, &index)
 		if err != nil {
 			log.Println(err.Error())
 		}
-		// TODO: Don't use index, it'll reset on server restart
-		log.Printf("Last index number was: %d", index)
+
+		log.Printf("Last log entry was from: %v", logEntryTime)
+		log.Printf("Last log entry index was: %d", index)
 		_, err = api.Res("log/overview", resp).Get()
 
 		firstLog := resp.Response["first"].(float64)
 		logCount := resp.Response["count"].(float64) + firstLog
-		count := strconv.Itoa(int(int64(logCount) - index) + 10)
-		var entries int
+		preCount := (int64(logCount)-index) + extraLogs
 
-		log.Printf("Fetching %s log entries from server", count)
+		if (preCount > serverLogLimit+extraLogs ) {
+			preCount = serverLogLimit+extraLogs
+		}
 
-		querystring := map[string]string{"offset": "-" + count, "count": count}
+		finalCount := strconv.Itoa(int(preCount))
+
+		log.Printf("Fetching %s log entries from server", finalCount)
+
+		querystring := map[string]string{"offset": "-" + finalCount, "count": finalCount}
 
 		_, err = api.Res("log/range", resp).Get(querystring)
 
+		var entries int
 		if err != nil {
 			log.Println(err)
 		} else {
@@ -72,7 +81,6 @@ func fetchNewData(configuration Configuration) {
 			for _, event := range resp.Response["events"].([]interface{}) {
 				event, _ := event.(map[string]interface{})
 
-				// TODO: Don't use index, it'll reset on server restart
 				if int64(event["index"].(float64)) <= index {
 					continue
 				}
@@ -95,7 +103,7 @@ func fetchNewData(configuration Configuration) {
 					participantid = 0
 				}
 
-				_, err := logsIns.Exec(
+				result, err := logsIns.Exec(
 					nil,
 					event["index"].(float64),
 					time.Unix(int64(event["time"].(float64)), 0),
@@ -107,19 +115,23 @@ func fetchNewData(configuration Configuration) {
 					log.Println(err.Error())
 				}
 
+				lastInsertedId, err := result.LastInsertId()
+				if err != nil {
+					log.Println(err.Error())
+				}
+
 				for key, value := range event["attributes"].(map[string]interface{}) {
-					// TODO: Don't use index, it'll reset on server restart
-					_, err = logAttributesIns.Exec(nil, event["index"].(float64), key, value)
+					_, err = logAttributesIns.Exec(nil, lastInsertedId, key, value)
 					if err != nil {
 						log.Println(err.Error())
 					}
 				}
 			}
 		}
-		log.Printf("Added %d new log entries out of %s fetched ones", entries, count)
+		log.Printf("Added %d new log entries out of %s fetched ones", entries, finalCount)
 		elapsed := time.Since(start)
 		log.Printf("Fetching data took %s", elapsed)
-		log.Println("Idling for 1 minute")
+		log.Println("Fetcher idling for 1 minute")
 		time.Sleep(time.Minute)
 	}
 }

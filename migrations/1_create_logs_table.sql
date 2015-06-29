@@ -7,10 +7,10 @@ CREATE TABLE logs (
   refid int,
   participantid int,
   primary key (id),
+  index (`index`),
   index (time),
   index (name),
-  index (refid),
-  unique key `index` (`index`)
+  index (refid)
 );
 
 -- +migrate Down

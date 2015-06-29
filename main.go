@@ -12,9 +12,10 @@ import (
 func main() {
 	configuration := readConfiguration()
 	go fetchNewData(configuration)
+	go hashSessions(configuration)
 
 	wsContainer := restful.NewContainer()
-	l := LogResource{}
+	l := SessionResource{}
 	l.RegisterTo(wsContainer)
 
 	cors := restful.CrossOriginResourceSharing{
