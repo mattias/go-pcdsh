@@ -13,6 +13,43 @@ type Session struct {
 	StartTime, EndTime                 time.Time
 }
 
+type Lap struct {
+	CountThisLapTimes, DistanceTravelled, Lap, LapTime, RacePosition, Sector1Time, Sector2Time, Sector3Time int64
+}
+
+type Result struct {
+	FastestLapTime, Lap, RacePosition, TotalTime, VehicleId int64
+	State                                                   string
+}
+
+type Impact struct {
+	CollisionMagnitude, OtherParticipantId int64
+}
+
+type CutTrackStart struct {
+	IsMainBranch, Lap, LapTime, RacePosition int64
+}
+
+type CutTrackEnd struct {
+	ElapsedTime, PenaltyThreshold, PenaltyValue, PlaceGain, SkippedTime int64
+}
+
+type SessionSetup struct {
+	Flags, GameMode, GridSize, MaxPlayers, Practice1Length, Practice2Length, QualifyLength, Race1Length, Race2Length, TrackId, WarmupLength int64
+}
+
+type Participant struct {
+	Laps      map[string][int64]Lap    // string is SessionStage, int64 is Lap number
+	Impacts   map[string][]Impact      // string is SessionStage
+	CutTracks map[string][]interface{} // string is SessionStage TODO: Best way to do this?
+	Results   map[string]Result        // string is SessionStage
+}
+
+type CompiledSession struct {
+	Setup        SessionSetup
+	Participants map[int64]Participant
+}
+
 type SessionResource struct {
 	sessions []Session
 }
@@ -26,8 +63,13 @@ func (s SessionResource) RegisterTo(container *restful.Container) {
 
 	ws.Route(ws.GET("/").To(s.getAllSessions))
 	ws.Route(ws.GET("/{id}").To(s.getSessionById))
+	ws.Route(ws.GET("/compiled/{id}").To(s.getCompiledSessionById))
 
 	container.Add(ws)
+}
+
+func (s SessionResource) getCompiledSessionById(request *restful.Request, response *restful.Response) {
+	// TODO: compile the data and give it back in a nice struct
 }
 
 func (s SessionResource) getAllSessions(request *restful.Request, response *restful.Response) {
