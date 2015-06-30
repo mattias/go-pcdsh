@@ -8,6 +8,11 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+type Session struct {
+	Id, StartLogId, EndLogId, LogCount int64
+	StartTime, EndTime                 time.Time
+}
+
 type SessionResource struct {
 	sessions []Session
 }

@@ -15,8 +15,11 @@ func main() {
 	go hashSessions(configuration)
 
 	wsContainer := restful.NewContainer()
-	l := SessionResource{}
+	s := SessionResource{}
+	s.RegisterTo(wsContainer)
+	l := LogResource{}
 	l.RegisterTo(wsContainer)
+
 
 	cors := restful.CrossOriginResourceSharing{
 		ExposeHeaders:  []string{"X-My-Header"},
