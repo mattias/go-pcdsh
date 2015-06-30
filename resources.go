@@ -4,10 +4,13 @@ import (
 	"github.com/emicklei/go-restful"
 	"time"
 	"log"
-	"io"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 )
+
+type SessionResource struct {
+	sessions []Session
+}
 
 func (s SessionResource) RegisterTo(container *restful.Container) {
 	ws := new(restful.WebService)
@@ -18,12 +21,13 @@ func (s SessionResource) RegisterTo(container *restful.Container) {
 
 	ws.Route(ws.GET("/").To(s.getAllSessions))
 	ws.Route(ws.GET("/{id}").To(s.getSessionById))
-	ws.Route(ws.GET("/date/{date}").To(s.getSessionByDate))
 
 	container.Add(ws)
 }
 
 func (s SessionResource) getAllSessions(request *restful.Request, response *restful.Response) {
+	// TODO: Render all or have a limit + pagination?
+	start := time.Now()
 	configuration := readConfiguration()
 
 	db, err := sql.Open("mysql", configuration.Datasource)
@@ -57,6 +61,8 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 		logCount int64
 	)
 
+	s.sessions = make([]Session, 0)
+
 	for sessionRows.Next() {
 		err = sessionRows.Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logCount)
 		if err != nil {
@@ -64,13 +70,15 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 		}
 
 		session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, LogCount: logCount}
-		// TODO: try to feed session variable into a slice or something, then have WriteEntity write out the entire slice
-		// TODO: As it is now, this won't do, fix!
-		response.WriteEntity(session)
+		s.sessions = append(s.sessions, session)
 	}
+	response.WriteEntity(s.sessions)
+	elapsed := time.Since(start)
+	log.Printf("Render getAllSessions took %s", elapsed)
 }
 
 func (s SessionResource) getSessionById(request *restful.Request, response *restful.Response) {
+	start := time.Now()
 	id := request.PathParameter("id")
 	configuration := readConfiguration()
 
@@ -103,13 +111,13 @@ func (s SessionResource) getSessionById(request *restful.Request, response *rest
 	err = sessionsOut.QueryRow(id).Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logCount)
 	if err != nil {
 		log.Println(err.Error())
+
+		response.WriteErrorString(404, "404 page not found")
+		return
 	}
 
 	response.WriteEntity(Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, LogCount: logCount })
-}
 
-func (s SessionResource) getSessionByDate(request *restful.Request, response *restful.Response) {
-	start := request.QueryParameter("start")
-	end := request.QueryParameter("end")
-	io.WriteString(response.ResponseWriter, start + " : " + end)
+	elapsed := time.Since(start)
+	log.Printf("Render getSessionById took %s", elapsed)
 }

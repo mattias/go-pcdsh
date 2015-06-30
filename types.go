@@ -16,4 +16,3 @@ type Session struct {
 	StartTime, EndTime                 time.Time
 }
 
-type SessionResource struct { }
