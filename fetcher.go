@@ -48,6 +48,15 @@ func fetchNewData(configuration Configuration) {
 
 		firstLog := resp.Response["first"].(float64)
 		logCount := resp.Response["count"].(float64) + firstLog
+		if(logCount == 0) {
+			// Fresh restarted server, not much to do here
+			elapsed := time.Since(start)
+			log.Println("Server just restarted, nothing to fetch")
+			log.Printf("Fetching data took %s", elapsed)
+			log.Println("Fetcher idling for 15 minutes")
+			time.Sleep(15 * time.Minute)
+			continue
+		}
 		preCount := (int64(logCount)-index) + extraLogs
 
 		if (preCount > serverLogLimit+extraLogs ) {
