@@ -50,7 +50,7 @@ type Participant struct {
 	Id     int
 	Name   string
 	Refid  int
-	Stages map[string]Stage
+	Stages map[string]*Stage
 }
 
 type CompiledSession struct {
@@ -190,7 +190,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			})
 		case "ParticipantCreated":
 			compiledSession.Participants = append(compiledSession.Participants, Participant{
-				Stages: make(map[string]Stage),
+				Stages: make(map[string]*Stage),
 				Id: logParticipantid,
 				Name: logAttributes["Name"],
 				Refid: logRefid,
@@ -198,11 +198,10 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
 					for _, stage := range sessionStages {
-						compiledSession.Participants[key].Stages[stage] = Stage{
-							Name: stage,
-							Laps: make([]Lap, 0),
-							Incidents: make([]interface{}, 0),
-						}
+						compiledSession.Participants[key].Stages[stage] = &Stage{}
+						compiledSession.Participants[key].Stages[stage].Name = stage
+						compiledSession.Participants[key].Stages[stage].Laps = make([]Lap, 0)
+						compiledSession.Participants[key].Stages[stage].Incidents = make([]interface{}, 0)
 					}
 				}
 			}
@@ -229,22 +228,16 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			Sector3Time, _ := strconv.Atoi(logAttributes["Sector3Time"])
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
-					if curSessionStage != "" {
-						for stageKey,_ := range compiledSession.Participants[key].Stages {
-							if stageKey == curSessionStage {
-								compiledSession.Participants[key].Stages[stageKey].Laps = append(compiledSession.Participants[key].Stages[stageKey].Laps, Lap{
-									CountThisLapTimes: CountThisLapTimes,
-									DistanceTravelled: DistanceTravelled,
-									Lap: lap,
-									LapTime: LapTime,
-									RacePosition: RacePosition,
-									Sector1Time: Sector1Time,
-									Sector2Time: Sector2Time,
-									Sector3Time: Sector3Time,
-								})
-							}
-						}
-					}
+					compiledSession.Participants[key].Stages[curSessionStage].Laps = append(compiledSession.Participants[key].Stages[curSessionStage].Laps, Lap{
+						CountThisLapTimes: CountThisLapTimes,
+						DistanceTravelled: DistanceTravelled,
+						Lap: lap,
+						LapTime: LapTime,
+						RacePosition: RacePosition,
+						Sector1Time: Sector1Time,
+						Sector2Time: Sector2Time,
+						Sector3Time: Sector3Time,
+					})
 				}
 			}
 		case "Results":
@@ -255,15 +248,13 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			VehicleId, _ := strconv.Atoi(logAttributes["VehicleId"])
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
-					if curSessionStage != "" {
-						compiledSession.Participants[key].Stages[curSessionStage].Result = Result{
-							FastestLapTime: FastestLapTime,
-							Lap: Lap,
-							RacePosition: RacePosition,
-							TotalTime: TotalTime,
-							VehicleId: VehicleId,
-							State: logAttributes["State"],
-						}
+					compiledSession.Participants[key].Stages[curSessionStage].Result = Result{
+						FastestLapTime: FastestLapTime,
+						Lap: Lap,
+						RacePosition: RacePosition,
+						TotalTime: TotalTime,
+						VehicleId: VehicleId,
+						State: logAttributes["State"],
 					}
 				}
 			}
@@ -272,12 +263,10 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			OtherParticipantId, _ := strconv.Atoi(logAttributes["OtherParticipantId"])
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
-					if curSessionStage != "" {
-						compiledSession.Participants[key].Stages[curSessionStage].Incidents = append(compiledSession.Participants[key].Stages[curSessionStage].Incidents, Impact{
-							CollisionMagnitude: CollisionMagnitude,
-							OtherParticipantId: OtherParticipantId,
-						})
-					}
+					compiledSession.Participants[key].Stages[curSessionStage].Incidents = append(compiledSession.Participants[key].Stages[curSessionStage].Incidents, Impact{
+						CollisionMagnitude: CollisionMagnitude,
+						OtherParticipantId: OtherParticipantId,
+					})
 				}
 			}
 		case "CutTrackStart":
@@ -287,14 +276,12 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			RacePosition, _ := strconv.Atoi(logAttributes["RacePosition"])
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
-					if curSessionStage != "" {
-						compiledSession.Participants[key].Stages[curSessionStage].Incidents = append(compiledSession.Participants[key].Stages[curSessionStage].Incidents, CutTrackStart{
-							IsMainBranch: IsMainBranch,
-							Lap: Lap,
-							LapTime: LapTime,
-							RacePosition: RacePosition,
-						})
-					}
+					compiledSession.Participants[key].Stages[curSessionStage].Incidents = append(compiledSession.Participants[key].Stages[curSessionStage].Incidents, CutTrackStart{
+						IsMainBranch: IsMainBranch,
+						Lap: Lap,
+						LapTime: LapTime,
+						RacePosition: RacePosition,
+					})
 				}
 			}
 		case "CutTrackEnd":
@@ -305,15 +292,13 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			SkippedTime, _ := strconv.Atoi(logAttributes["SkippedTime"])
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
-					if curSessionStage != "" {
-						compiledSession.Participants[key].Stages[curSessionStage].Incidents = append(compiledSession.Participants[key].Stages[curSessionStage].Incidents, CutTrackEnd{
-							ElapsedTime: ElapsedTime,
-							PenaltyThreshold: PenaltyThreshold,
-							PenaltyValue: PenaltyValue,
-							PlaceGain: PlaceGain,
-							SkippedTime: SkippedTime,
-						})
-					}
+					compiledSession.Participants[key].Stages[curSessionStage].Incidents = append(compiledSession.Participants[key].Stages[curSessionStage].Incidents, CutTrackEnd{
+						ElapsedTime: ElapsedTime,
+						PenaltyThreshold: PenaltyThreshold,
+						PenaltyValue: PenaltyValue,
+						PlaceGain: PlaceGain,
+						SkippedTime: SkippedTime,
+					})
 				}
 			}
 		}
