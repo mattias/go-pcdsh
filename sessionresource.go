@@ -230,16 +230,20 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
 					if curSessionStage != "" {
-						compiledSession.Participants[key].Stages[curSessionStage].Laps = append(compiledSession.Participants[key].Stages[curSessionStage].Laps, Lap{
-							CountThisLapTimes: CountThisLapTimes,
-							DistanceTravelled: DistanceTravelled,
-							Lap: lap,
-							LapTime: LapTime,
-							RacePosition: RacePosition,
-							Sector1Time: Sector1Time,
-							Sector2Time: Sector2Time,
-							Sector3Time: Sector3Time,
-						})
+						for stageKey,_ := range compiledSession.Participants[key].Stages {
+							if stageKey == curSessionStage {
+								compiledSession.Participants[key].Stages[stageKey].Laps = append(compiledSession.Participants[key].Stages[stageKey].Laps, Lap{
+									CountThisLapTimes: CountThisLapTimes,
+									DistanceTravelled: DistanceTravelled,
+									Lap: lap,
+									LapTime: LapTime,
+									RacePosition: RacePosition,
+									Sector1Time: Sector1Time,
+									Sector2Time: Sector2Time,
+									Sector3Time: Sector3Time,
+								})
+							}
+						}
 					}
 				}
 			}
