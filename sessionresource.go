@@ -167,7 +167,6 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 					Name: curSessionStage,
 					Laps: make([]Lap, 0),
 					Incidents: make([]interface{}, 0),
-					Result: Result{},
 				}
 			}
 		case "SessionSetup":
@@ -212,7 +211,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 					break
 				}
 			}
-		case "Lap":
+		/*case "Lap":
 			CountThisLapTimes, _ := strconv.Atoi(logAttributes["CountThisLapTimes"])
 			DistanceTravelled, _ := strconv.Atoi(logAttributes["DistanceTravelled"])
 			lap, _ := strconv.Atoi(logAttributes["Lap"])
@@ -275,7 +274,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 				PenaltyValue: PenaltyValue,
 				PlaceGain: PlaceGain,
 				SkippedTime: SkippedTime,
-			})
+			})*/
 		}
 	}
 

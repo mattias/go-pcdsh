@@ -64,6 +64,7 @@ func fetchNewData(configuration Configuration) {
 		firstLog := resp.Response["first"].(float64)
 		logCount := resp.Response["count"].(float64) + firstLog
 		if (logCount == 0) {
+			log.Println("Logcount was 0")
 			// Fresh restarted server, not much to do here
 			elapsed := time.Since(start)
 			log.Println("Server just restarted, nothing to fetch")
@@ -76,10 +77,12 @@ func fetchNewData(configuration Configuration) {
 		preCount = (int64(logCount)-index) + extraLogs
 
 		if (preCount < 0) {
-			preCount = 0
+			log.Println("Precount was less than 0!")
+			preCount = 1
 		}
 
 		if (preCount > serverLogLimit+extraLogs ) {
+			log.Println("precount was larger than server log limit + extra logs")
 			preCount = serverLogLimit+extraLogs
 		}
 
@@ -99,7 +102,7 @@ func fetchNewData(configuration Configuration) {
 			for _, event := range resp.Response["events"].([]interface{}) {
 				event, _ := event.(map[string]interface{})
 
-				if int64(event["index"].(float64)) <= index {
+				if int64(event["index"].(float64)) <= index && preCount != 1 {
 					continue
 				}
 
