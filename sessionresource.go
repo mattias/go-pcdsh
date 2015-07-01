@@ -162,6 +162,14 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		switch(logName) {
 		case "StageChanged":
 			curSessionStage = logAttributes["NewStage"]
+			for _, v := range compiledSession.Participants {
+				v.Stages[curSessionStage] = Stage{
+					Name: curSessionStage,
+					Laps: make([]Lap, 0),
+					Incidents: make([]interface{}, 0),
+					Result: Result{},
+				}
+			}
 		case "SessionSetup":
 			Flags, _ := strconv.Atoi(logAttributes["Flags"])
 			GameMode, _ := strconv.Atoi(logAttributes["GameMode"])
@@ -190,10 +198,12 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		case "ParticipantCreated":
 			_, prs := compiledSession.Participants[logParticipantid]
 			if ( ! prs ) {
-				compiledSession.Participants[logParticipantid].Stages = make(map[string]Stage)
-				compiledSession.Participants[logParticipantid].Id = logParticipantid
-				compiledSession.Participants[logParticipantid].Name = logAttributes["Name"]
-				compiledSession.Participants[logParticipantid].Refid = logRefid
+				compiledSession.Participants[logParticipantid] = Participant{
+					Stages: make(map[string]Stage),
+					Id: logParticipantid,
+					Name: logAttributes["Name"],
+					Refid: logRefid,
+				}
 			}
 		case "ParticipantDestroyed":
 			for k, v := range compiledSession.Participants {
