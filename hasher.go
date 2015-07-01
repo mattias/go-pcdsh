@@ -6,25 +6,37 @@ import (
 )
 
 func hashSessions(configuration Configuration) {
+	db, err := sql.Open("mysql", configuration.Datasource)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	sessionsOut, err := db.Prepare("SELECT end_time FROM `sessions` ORDER BY end_time DESC LIMIT 1")
+	if err != nil {
+		log.Println(err.Error())
+	}
+	defer sessionsOut.Close()
+
+	logsOut, err := db.Prepare("SELECT id, name, time FROM `logs` WHERE `time` > ? ORDER BY `time` ASC, `index` ASC")
+	if err != nil {
+		log.Println(err.Error())
+	}
+	defer logsOut.Close()
+
+	sessionsIns, err := db.Prepare("INSERT INTO sessions VALUES( ?, ?, ?, ?, ?, ? )")
+	if err != nil {
+		log.Println(err.Error())
+	}
+	defer sessionsIns.Close()
+
 	for {
 		start := time.Now()
-
-		db, err := sql.Open("mysql", configuration.Datasource)
-		if err != nil {
-			panic(err.Error())
-		}
-		defer db.Close()
-
-		err = db.Ping()
-		if err != nil {
-			panic(err.Error())
-		}
-
-		sessionsOut, err := db.Prepare("SELECT end_time FROM `sessions` ORDER BY end_time DESC LIMIT 1")
-		if err != nil {
-			log.Println(err.Error())
-		}
-		defer sessionsOut.Close()
 
 		var end_time time.Time
 
@@ -34,18 +46,6 @@ func hashSessions(configuration Configuration) {
 		}
 
 		log.Println(end_time)
-
-		logsOut, err := db.Prepare("SELECT id, name, time FROM `logs` WHERE `time` > ? ORDER BY `time` ASC, `index` ASC")
-		if err != nil {
-			log.Println(err.Error())
-		}
-		defer logsOut.Close()
-
-		sessionsIns, err := db.Prepare("INSERT INTO sessions VALUES( ?, ?, ?, ?, ?, ? )")
-		if err != nil {
-			log.Println(err.Error())
-		}
-		defer sessionsIns.Close()
 
 		var (
 			logId int64

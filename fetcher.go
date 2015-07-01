@@ -10,32 +10,47 @@ import (
 )
 
 func fetchNewData(configuration Configuration) {
+	db, err := sql.Open("mysql", configuration.Datasource)
+	if err != nil {
+		panic(err.Error())
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	logsOut, err := db.Prepare("SELECT `time`, `index` FROM `logs` ORDER BY `time` DESC, `index` DESC LIMIT 1")
+	if err != nil {
+		log.Println(err.Error())
+	}
+	defer logsOut.Close()
+
+	logsIns, err := db.Prepare("INSERT INTO logs VALUES( ?, ?, ?, ?, ?, ? )")
+	if err != nil {
+		log.Println(err.Error())
+	}
+	defer logsIns.Close()
+
+	logAttributesIns, err := db.Prepare("INSERT INTO log_attributes VALUES( ?, ?, ?, ? )")
+	if err != nil {
+		log.Println(err.Error())
+	}
+	defer logAttributesIns.Close()
+
 	for {
 		start := time.Now()
 
-		db, err := sql.Open("mysql", configuration.Datasource)
-		if err != nil {
-			panic(err.Error())
-		}
-		defer db.Close()
-
-		err = db.Ping()
-		if err != nil {
-			panic(err.Error())
-		}
-
 		api := gopencils.Api(configuration.BaseUrl)
 		resp := new(RespStruct)
-		logsOut, err := db.Prepare("SELECT `time`, `index` FROM `logs` ORDER BY `time` DESC, `index` DESC LIMIT 1")
-		if err != nil {
-			log.Println(err.Error())
-		}
-		defer logsOut.Close()
 
-		var logEntryTime time.Time
-		var index int64
-		var extraLogs int64 = 10
-		var serverLogLimit int64 = 10000
+		var (
+			logEntryTime time.Time
+			index, preCount int64
+			extraLogs int64 = 10
+			serverLogLimit int64 = 10000
+		)
 
 		err = logsOut.QueryRow().Scan(&logEntryTime, &index)
 		if err != nil {
@@ -48,7 +63,7 @@ func fetchNewData(configuration Configuration) {
 
 		firstLog := resp.Response["first"].(float64)
 		logCount := resp.Response["count"].(float64) + firstLog
-		if(logCount == 0) {
+		if (logCount == 0) {
 			// Fresh restarted server, not much to do here
 			elapsed := time.Since(start)
 			log.Println("Server just restarted, nothing to fetch")
@@ -57,7 +72,12 @@ func fetchNewData(configuration Configuration) {
 			time.Sleep(15 * time.Minute)
 			continue
 		}
-		preCount := (int64(logCount)-index) + extraLogs
+
+		preCount = (int64(logCount)-index) + extraLogs
+
+		if (preCount < 0) {
+			preCount = 0
+		}
 
 		if (preCount > serverLogLimit+extraLogs ) {
 			preCount = serverLogLimit+extraLogs
@@ -75,17 +95,6 @@ func fetchNewData(configuration Configuration) {
 		if err != nil {
 			log.Println(err)
 		} else {
-			logsIns, err := db.Prepare("INSERT INTO logs VALUES( ?, ?, ?, ?, ?, ? )")
-			if err != nil {
-				log.Println(err.Error())
-			}
-			defer logsIns.Close()
-
-			logAttributesIns, err := db.Prepare("INSERT INTO log_attributes VALUES( ?, ?, ?, ? )")
-			if err != nil {
-				log.Println(err.Error())
-			}
-			defer logAttributesIns.Close()
 
 			for _, event := range resp.Response["events"].([]interface{}) {
 				event, _ := event.(map[string]interface{})
