@@ -39,18 +39,23 @@ func fetchNewData(configuration Configuration) {
 	}
 	defer logAttributesIns.Close()
 
+	var (
+		start time.Time
+		elapsed time.Duration
+		logEntryTime time.Time
+		index, preCount int64
+		extraLogs int64 = 10
+		serverLogLimit int64 = 10000
+		api = gopencils.Api(configuration.BaseUrl)
+		resp = new(RespStruct)
+		firstLog, logCount, refid, participantid float64
+		finalCount string
+		querystring map[string]string
+		entries int
+	)
+
 	for {
-		start := time.Now()
-
-		api := gopencils.Api(configuration.BaseUrl)
-		resp := new(RespStruct)
-
-		var (
-			logEntryTime time.Time
-			index, preCount int64
-			extraLogs int64 = 10
-			serverLogLimit int64 = 10000
-		)
+		start = time.Now()
 
 		err = logsOut.QueryRow().Scan(&logEntryTime, &index)
 		if err != nil {
@@ -61,8 +66,8 @@ func fetchNewData(configuration Configuration) {
 		log.Printf("Last log entry index was: %d", index)
 		_, err = api.Res("log/overview", resp).Get()
 
-		firstLog := resp.Response["first"].(float64)
-		logCount := resp.Response["count"].(float64) + firstLog
+		firstLog = resp.Response["first"].(float64)
+		logCount = resp.Response["count"].(float64) + firstLog
 		if (logCount == 0) {
 			log.Println("Logcount was 0")
 			// Fresh restarted server, not much to do here
@@ -86,15 +91,15 @@ func fetchNewData(configuration Configuration) {
 			preCount = serverLogLimit+extraLogs
 		}
 
-		finalCount := strconv.Itoa(int(preCount))
+		finalCount = strconv.Itoa(int(preCount))
 
 		log.Printf("Fetching %s log entries from server", finalCount)
 
-		querystring := map[string]string{"offset": "-" + finalCount, "count": finalCount}
+		querystring = map[string]string{"offset": "-" + finalCount, "count": finalCount}
 
 		_, err = api.Res("log/range", resp).Get(querystring)
 
-		var entries int
+		entries = 0
 		if err != nil {
 			log.Println(err)
 		} else {
@@ -108,7 +113,6 @@ func fetchNewData(configuration Configuration) {
 
 				entries++
 
-				var refid float64
 				switch event["refid"].(type) {
 					case float64:
 					refid = event["refid"].(float64)
@@ -116,7 +120,6 @@ func fetchNewData(configuration Configuration) {
 					refid = 0
 				}
 
-				var participantid float64
 				switch event["participantid"].(type) {
 					case float64:
 					participantid = event["participantid"].(float64)
@@ -150,7 +153,7 @@ func fetchNewData(configuration Configuration) {
 			}
 		}
 		log.Printf("Added %d new log entries out of %s fetched ones", entries, finalCount)
-		elapsed := time.Since(start)
+		elapsed = time.Since(start)
 		log.Printf("Fetching data took %s", elapsed)
 		log.Println("Fetcher idling for 15 minutes")
 		time.Sleep(15 * time.Minute)

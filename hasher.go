@@ -35,10 +35,22 @@ func hashSessions(configuration Configuration) {
 	}
 	defer sessionsIns.Close()
 
-	for {
-		start := time.Now()
+	var (
+		logId int64
+		logName string
+		logTime time.Time
+		logCount int64
+		logStartId int64
+		logStartTime time.Time
+		logEndId int64
+		logEndTime time.Time
+		start time.Time
+		end_time time.Time
+		elapsed time.Duration
+	)
 
-		var end_time time.Time
+	for {
+		start = time.Now()
 
 		err = sessionsOut.QueryRow().Scan(&end_time)
 		if err != nil {
@@ -46,17 +58,6 @@ func hashSessions(configuration Configuration) {
 		}
 
 		log.Println(end_time)
-
-		var (
-			logId int64
-			logName string
-			logTime time.Time
-			logCount int64
-			logStartId int64
-			logStartTime time.Time
-			logEndId int64
-			logEndTime time.Time
-		)
 
 		logRows, err := logsOut.Query(end_time)
 		if err != nil {
@@ -87,7 +88,7 @@ func hashSessions(configuration Configuration) {
 			}
 		}
 
-		elapsed := time.Since(start)
+		elapsed = time.Since(start)
 		log.Printf("Hashing sessions took %s", elapsed)
 		log.Println("Hasher idling for 1 hour")
 		time.Sleep(time.Hour)

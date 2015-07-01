@@ -55,7 +55,7 @@ type Participant struct {
 
 type CompiledSession struct {
 	Setup        []SessionSetup
-	Participants map[int]Participant
+	Participants []Participant
 }
 
 type SessionResource struct {
@@ -134,10 +134,10 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		logAttributeKey string
 		logAttributeValue string
 		curSessionStage string
+		sessionStages = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
 	)
-
 	compiledSession.Setup = make([]SessionSetup, 0)
-	compiledSession.Participants = make(map[int]Participant)
+	compiledSession.Participants = make([]Participant, 0)
 
 	for logRows.Next() {
 		err = logRows.Scan(&logId, &logIndex, &logTime, &logName, &logRefid, &logParticipantid)
@@ -162,13 +162,6 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		switch(logName) {
 		case "StageChanged":
 			curSessionStage = logAttributes["NewStage"]
-			for _, v := range compiledSession.Participants {
-				v.Stages[curSessionStage] = Stage{
-					Name: curSessionStage,
-					Laps: make([]Lap, 0),
-					Incidents: make([]interface{}, 0),
-				}
-			}
 		case "SessionSetup":
 			Flags, _ := strconv.Atoi(logAttributes["Flags"])
 			GameMode, _ := strconv.Atoi(logAttributes["GameMode"])
@@ -195,23 +188,31 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 				WarmupLength: WarmupLength,
 			})
 		case "ParticipantCreated":
-			_, prs := compiledSession.Participants[logParticipantid]
-			if ( ! prs ) {
-				compiledSession.Participants[logParticipantid] = Participant{
-					Stages: make(map[string]Stage),
-					Id: logParticipantid,
-					Name: logAttributes["Name"],
-					Refid: logRefid,
+			compiledSession.Participants = append(compiledSession.Participants, Participant{
+				Stages: make(map[string]Stage),
+				Id: logParticipantid,
+				Name: logAttributes["Name"],
+				Refid: logRefid,
+			})
+			for _, stage := range sessionStages {
+				compiledSession.Participants[logParticipantid].Stages[stage] = Stage{
+					Name: stage,
+					Laps: make([]Lap, 0),
+					Incidents: make([]interface{}, 0),
 				}
 			}
 		case "ParticipantDestroyed":
-			for k, v := range compiledSession.Participants {
-				if v.Refid == logRefid {
-					delete(compiledSession.Participants, k)
+			var sliceIndex int = -1
+			for key := range compiledSession.Participants {
+				if compiledSession.Participants[key].Refid == logRefid {
+					sliceIndex = key
 					break
 				}
 			}
-		/*case "Lap":
+			if sliceIndex >= 0 {
+				compiledSession.Participants = append(compiledSession.Participants[:sliceIndex], compiledSession.Participants[sliceIndex+1:]...)
+			}
+		case "Lap":
 			CountThisLapTimes, _ := strconv.Atoi(logAttributes["CountThisLapTimes"])
 			DistanceTravelled, _ := strconv.Atoi(logAttributes["DistanceTravelled"])
 			lap, _ := strconv.Atoi(logAttributes["Lap"])
@@ -220,7 +221,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			Sector1Time, _ := strconv.Atoi(logAttributes["Sector1Time"])
 			Sector2Time, _ := strconv.Atoi(logAttributes["Sector2Time"])
 			Sector3Time, _ := strconv.Atoi(logAttributes["Sector3Time"])
-			compiledSession.Participants[logParticipantid].Stages[curSessionStage].Laps= append(compiledSession.Participants[logParticipantid].Stages[curSessionStage].Laps, Lap{
+			compiledSession.Participants[logParticipantid].Stages[curSessionStage].Laps = append(compiledSession.Participants[logParticipantid].Stages[curSessionStage].Laps, Lap{
 				CountThisLapTimes: CountThisLapTimes,
 				DistanceTravelled: DistanceTravelled,
 				Lap: lap,
@@ -274,7 +275,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 				PenaltyValue: PenaltyValue,
 				PlaceGain: PlaceGain,
 				SkippedTime: SkippedTime,
-			})*/
+			})
 		}
 	}
 
