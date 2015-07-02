@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/emicklei/go-restful"
-	"time"
-	"log"
 	"database/sql"
+	"github.com/emicklei/go-restful"
 	_ "github.com/go-sql-driver/mysql"
+	"log"
 	"strconv"
+	"time"
 )
 
 type Session struct {
@@ -24,14 +24,17 @@ type Result struct {
 }
 
 type Impact struct {
+	Name                                   string
 	CollisionMagnitude, OtherParticipantId int
 }
 
 type CutTrackStart struct {
+	Name                                     string
 	IsMainBranch, Lap, LapTime, RacePosition int
 }
 
 type CutTrackEnd struct {
+	Name                                                                string
 	ElapsedTime, PenaltyThreshold, PenaltyValue, PlaceGain, SkippedTime int
 }
 
@@ -65,9 +68,9 @@ type SessionResource struct {
 func (s SessionResource) RegisterTo(container *restful.Container) {
 	ws := new(restful.WebService)
 	ws.
-	Path("/session").
-	Consumes(restful.MIME_JSON).
-	Produces(restful.MIME_JSON)
+		Path("/session").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/").To(s.getAllSessions))
 	ws.Route(ws.GET("/{id}").To(s.getSessionById))
@@ -94,18 +97,18 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 	}
 
 	var (
-		logId int
-		logIndex int
-		logTime time.Time
-		logName string
-		logRefid int
-		logParticipantid int
-		logAttributes map[string]string
-		logAttributeKey string
+		logId             int
+		logIndex          int
+		logTime           time.Time
+		logName           string
+		logRefid          int
+		logParticipantid  int
+		logAttributes     map[string]string
+		logAttributeKey   string
 		logAttributeValue string
-		startId, endId int
-		curSessionStage string = "Practice1"
-		sessionStages = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
+		startId, endId    int
+		curSessionStage   string = "Practice1"
+		sessionStages            = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
 	)
 	compiledSession.Participants = make([]Participant, 0)
 
@@ -150,7 +153,6 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		log.Println(err.Error())
 	}
 
-
 	for logRows.Next() {
 		err = logRows.Scan(&logId, &logIndex, &logTime, &logName, &logRefid, &logParticipantid)
 		if err != nil {
@@ -172,7 +174,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			logAttributes[logAttributeKey] = logAttributeValue
 		}
 
-		switch(logName) {
+		switch logName {
 		case "StageChanged":
 			curSessionStage = logAttributes["NewStage"]
 		case "SessionSetup":
@@ -191,24 +193,24 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			TrackId, _ := strconv.Atoi(logAttributes["TrackId"])
 			WarmupLength, _ := strconv.Atoi(logAttributes["WarmupLength"])
 			compiledSession.Setup = SessionSetup{
-				Flags: Flags,
-				GameMode: GameMode,
-				GridSize: GridSize,
-				MaxPlayers: MaxPlayers,
+				Flags:           Flags,
+				GameMode:        GameMode,
+				GridSize:        GridSize,
+				MaxPlayers:      MaxPlayers,
 				Practice1Length: Practice1Length,
 				Practice2Length: Practice2Length,
-				QualifyLength: QualifyLength,
-				Race1Length: Race1Length,
-				Race2Length: Race2Length,
-				TrackId: TrackId,
-				WarmupLength: WarmupLength,
+				QualifyLength:   QualifyLength,
+				Race1Length:     Race1Length,
+				Race2Length:     Race2Length,
+				TrackId:         TrackId,
+				WarmupLength:    WarmupLength,
 			}
 		case "ParticipantCreated":
 			compiledSession.Participants = append(compiledSession.Participants, Participant{
 				Stages: make(map[string]*Stage),
-				Id: logParticipantid,
-				Name: logAttributes["Name"],
-				Refid: logRefid,
+				Id:     logParticipantid,
+				Name:   logAttributes["Name"],
+				Refid:  logRefid,
 			})
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
@@ -245,12 +247,12 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 					compiledSession.Participants[key].Stages[curSessionStage].Laps = append(compiledSession.Participants[key].Stages[curSessionStage].Laps, Lap{
 						CountThisLapTimes: CountThisLapTimes,
 						DistanceTravelled: DistanceTravelled,
-						Lap: lap,
-						LapTime: LapTime,
-						RacePosition: RacePosition,
-						Sector1Time: Sector1Time,
-						Sector2Time: Sector2Time,
-						Sector3Time: Sector3Time,
+						Lap:               lap,
+						LapTime:           LapTime,
+						RacePosition:      RacePosition,
+						Sector1Time:       Sector1Time,
+						Sector2Time:       Sector2Time,
+						Sector3Time:       Sector3Time,
 					})
 				}
 			}
@@ -264,11 +266,11 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 				if compiledSession.Participants[key].Id == logParticipantid {
 					compiledSession.Participants[key].Stages[curSessionStage].Result = Result{
 						FastestLapTime: FastestLapTime,
-						Lap: Lap,
-						RacePosition: RacePosition,
-						TotalTime: TotalTime,
-						VehicleId: VehicleId,
-						State: logAttributes["State"],
+						Lap:            Lap,
+						RacePosition:   RacePosition,
+						TotalTime:      TotalTime,
+						VehicleId:      VehicleId,
+						State:          logAttributes["State"],
 					}
 				}
 			}
@@ -278,6 +280,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
 					compiledSession.Participants[key].Stages[curSessionStage].Incidents = append(compiledSession.Participants[key].Stages[curSessionStage].Incidents, Impact{
+						Name:               "Impact",
 						CollisionMagnitude: CollisionMagnitude,
 						OtherParticipantId: OtherParticipantId,
 					})
@@ -291,9 +294,10 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
 					compiledSession.Participants[key].Stages[curSessionStage].Incidents = append(compiledSession.Participants[key].Stages[curSessionStage].Incidents, CutTrackStart{
+						Name:         "CutTrackStart",
 						IsMainBranch: IsMainBranch,
-						Lap: Lap,
-						LapTime: LapTime,
+						Lap:          Lap,
+						LapTime:      LapTime,
 						RacePosition: RacePosition,
 					})
 				}
@@ -307,11 +311,12 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Id == logParticipantid {
 					compiledSession.Participants[key].Stages[curSessionStage].Incidents = append(compiledSession.Participants[key].Stages[curSessionStage].Incidents, CutTrackEnd{
-						ElapsedTime: ElapsedTime,
+						Name:             "CutTrackEnd",
+						ElapsedTime:      ElapsedTime,
 						PenaltyThreshold: PenaltyThreshold,
-						PenaltyValue: PenaltyValue,
-						PlaceGain: PlaceGain,
-						SkippedTime: SkippedTime,
+						PenaltyValue:     PenaltyValue,
+						PlaceGain:        PlaceGain,
+						SkippedTime:      SkippedTime,
 					})
 				}
 			}
@@ -319,7 +324,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 	}
 
 	response.WriteEntity(compiledSession)
-	SetCache("/session/compiled/" + sessionId, compiledSession)
+	SetCache("/session/compiled/"+sessionId, compiledSession)
 
 	elapsed := time.Since(start)
 	log.Printf("Render getCompiledSessionById took %s", elapsed)
@@ -353,12 +358,12 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 	}
 
 	var (
-		sessionId int
-		logStartId int
-		logEndId int
+		sessionId    int
+		logStartId   int
+		logEndId     int
 		logStartTime time.Time
-		logEndTime time.Time
-		logCount int
+		logEndTime   time.Time
+		logCount     int
 	)
 
 	s.sessions = make([]Session, 0)
@@ -415,12 +420,12 @@ func (s SessionResource) getSessionById(request *restful.Request, response *rest
 	defer sessionsOut.Close()
 
 	var (
-		sessionId int
-		logStartId int
-		logEndId int
+		sessionId    int
+		logStartId   int
+		logEndId     int
 		logStartTime time.Time
-		logEndTime time.Time
-		logCount int
+		logEndTime   time.Time
+		logCount     int
 	)
 
 	err = sessionsOut.QueryRow(id).Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logCount)
@@ -431,10 +436,10 @@ func (s SessionResource) getSessionById(request *restful.Request, response *rest
 		return
 	}
 
-	session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, LogCount: logCount }
+	session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, LogCount: logCount}
 
 	response.WriteEntity(session)
-	SetCache("/session/" + id, session)
+	SetCache("/session/"+id, session)
 
 	elapsed := time.Since(start)
 	log.Printf("Render getSessionById took %s", elapsed)
