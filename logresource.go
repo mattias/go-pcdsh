@@ -35,6 +35,21 @@ func (l LogResource) RegisterTo(container *restful.Container) {
 
 func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *restful.Response) {
 	start := time.Now()
+	sessionId := request.PathParameter("id")
+	var startId, endId int64
+	var logCache interface{}
+
+	logCache, err := GetCache("/log/session/" + sessionId)
+	if err == nil {
+		l = logCache.(LogResource)
+		response.WriteEntity(l.logs)
+		elapsed := time.Since(start)
+		log.Printf("Render getLogRangeBySessionId took %s", elapsed)
+		return
+	} else {
+		log.Println(err)
+	}
+
 	configuration := readConfiguration()
 
 	db, err := sql.Open("mysql", configuration.Datasource)
@@ -65,9 +80,6 @@ func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *
 		log.Println(err.Error())
 	}
 	defer logsOut.Close()
-
-	sessionId := request.PathParameter("id")
-	var startId, endId int64
 
 	err = sessionsOut.QueryRow(sessionId).Scan(&startId, &endId)
 	if err != nil {
@@ -118,12 +130,16 @@ func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *
 	}
 
 	response.WriteEntity(l.logs)
+	SetCache("/log/session/" + sessionId, l)
+
 	elapsed := time.Since(start)
 	log.Printf("Render getLogRangeBySessionId took %s", elapsed)
 }
 
 func (l LogResource) getLogRange(request *restful.Request, response *restful.Response) {
 	start := time.Now()
+	startId := request.QueryParameter("start")
+	endId := request.QueryParameter("end")
 	configuration := readConfiguration()
 
 	db, err := sql.Open("mysql", configuration.Datasource)
@@ -148,9 +164,6 @@ func (l LogResource) getLogRange(request *restful.Request, response *restful.Res
 		log.Println(err.Error())
 	}
 	defer logsOut.Close()
-
-	startId := request.QueryParameter("start")
-	endId := request.QueryParameter("end")
 
 	logRows, err := logsOut.Query(startId, endId)
 	if err != nil {
@@ -196,6 +209,7 @@ func (l LogResource) getLogRange(request *restful.Request, response *restful.Res
 	}
 
 	response.WriteEntity(l.logs)
+
 	elapsed := time.Since(start)
 	log.Printf("Render getLogRange took %s", elapsed)
 }

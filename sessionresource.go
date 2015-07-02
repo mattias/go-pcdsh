@@ -78,10 +78,22 @@ func (s SessionResource) RegisterTo(container *restful.Container) {
 
 func (s SessionResource) getCompiledSessionById(request *restful.Request, response *restful.Response) {
 	start := time.Now()
-	configuration := readConfiguration()
+	sessionId := request.PathParameter("id")
+	var compiledSessionCache interface{}
+	var compiledSession CompiledSession
+
+	compiledSessionCache, err := GetCache("/session/compiled/" + sessionId)
+	if err == nil {
+		compiledSession = compiledSessionCache.(CompiledSession)
+		response.WriteEntity(compiledSession)
+		elapsed := time.Since(start)
+		log.Printf("Render getCompiledSessionById took %s", elapsed)
+		return
+	} else {
+		log.Println(err)
+	}
 
 	var (
-		compiledSession CompiledSession
 		logId int
 		logIndex int
 		logTime time.Time
@@ -96,6 +108,8 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		sessionStages = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
 	)
 	compiledSession.Participants = make([]Participant, 0)
+
+	configuration := readConfiguration()
 
 	db, err := sql.Open("mysql", configuration.Datasource)
 	if err != nil {
@@ -125,8 +139,6 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		log.Println(err.Error())
 	}
 	defer logsOut.Close()
-
-	sessionId := request.PathParameter("id")
 
 	err = sessionsOut.QueryRow(sessionId).Scan(&startId, &endId)
 	if err != nil {
@@ -208,12 +220,10 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 					}
 				}
 			}
-
 		case "ParticipantDestroyed":
-			// TODO: This doesn't seem to work very well, debug
 			var sliceIndex int = -1
 			for key := range compiledSession.Participants {
-				if compiledSession.Participants[key].Refid == logRefid {
+				if compiledSession.Participants[key].Id == logParticipantid {
 					sliceIndex = key
 					break
 				}
@@ -309,6 +319,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 	}
 
 	response.WriteEntity(compiledSession)
+	SetCache("/session/compiled/" + sessionId, compiledSession)
 
 	elapsed := time.Since(start)
 	log.Printf("Render getCompiledSessionById took %s", elapsed)
@@ -361,7 +372,9 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 		session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, LogCount: logCount}
 		s.sessions = append(s.sessions, session)
 	}
+
 	response.WriteEntity(s.sessions)
+
 	elapsed := time.Since(start)
 	log.Printf("Render getAllSessions took %s", elapsed)
 }
@@ -369,6 +382,19 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 func (s SessionResource) getSessionById(request *restful.Request, response *restful.Response) {
 	start := time.Now()
 	id := request.PathParameter("id")
+	var sessionCache interface{}
+
+	sessionCache, err := GetCache("/session/" + id)
+	if err == nil {
+		session := sessionCache.(Session)
+		response.WriteEntity(session)
+		elapsed := time.Since(start)
+		log.Printf("Render getSessionById took %s", elapsed)
+		return
+	} else {
+		log.Println(err)
+	}
+
 	configuration := readConfiguration()
 
 	db, err := sql.Open("mysql", configuration.Datasource)
@@ -405,7 +431,10 @@ func (s SessionResource) getSessionById(request *restful.Request, response *rest
 		return
 	}
 
-	response.WriteEntity(Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, LogCount: logCount })
+	session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, LogCount: logCount }
+
+	response.WriteEntity(session)
+	SetCache("/session/" + id, session)
 
 	elapsed := time.Since(start)
 	log.Printf("Render getSessionById took %s", elapsed)
