@@ -52,6 +52,21 @@ func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *
 
 	configuration := readConfiguration()
 
+	var (
+		logId int64
+		logIndex int64
+		logTime time.Time
+		logName string
+		logRefid int64
+		logParticipantid int64
+		logAttributes map[string]string
+		logAttributeKey string
+		logAttributeValue string
+	)
+
+	l.logs = make([]Log, 0)
+
+
 	db, err := sql.Open("mysql", configuration.Datasource)
 	if err != nil {
 		panic(err.Error())
@@ -91,20 +106,6 @@ func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *
 		log.Println(err.Error())
 	}
 
-	var (
-		logId int64
-		logIndex int64
-		logTime time.Time
-		logName string
-		logRefid int64
-		logParticipantid int64
-		logAttributes map[string]string
-		logAttributeKey string
-		logAttributeValue string
-	)
-
-	l.logs = make([]Log, 0)
-
 	for logRows.Next() {
 		err = logRows.Scan(&logId, &logIndex, &logTime, &logName, &logRefid, &logParticipantid)
 		if err != nil {
@@ -125,9 +126,13 @@ func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *
 			logAttributes[logAttributeKey] = logAttributeValue
 		}
 
+		logAttributeRows.Close()
+
 		log := Log{Id: logId, Index: logIndex, Time: logTime, Name: logName, Refid: logRefid, Participantid: logParticipantid, Attributes: logAttributes}
 		l.logs = append(l.logs, log)
 	}
+
+	logRows.Close()
 
 	response.WriteEntity(l.logs)
 	SetCache("/log/session/" + sessionId, l)
@@ -141,6 +146,20 @@ func (l LogResource) getLogRange(request *restful.Request, response *restful.Res
 	startId := request.QueryParameter("start")
 	endId := request.QueryParameter("end")
 	configuration := readConfiguration()
+
+	var (
+		logId int64
+		logIndex int64
+		logTime time.Time
+		logName string
+		logRefid int64
+		logParticipantid int64
+		logAttributes map[string]string
+		logAttributeKey string
+		logAttributeValue string
+	)
+
+	l.logs = make([]Log, 0)
 
 	db, err := sql.Open("mysql", configuration.Datasource)
 	if err != nil {
@@ -170,20 +189,6 @@ func (l LogResource) getLogRange(request *restful.Request, response *restful.Res
 		log.Println(err.Error())
 	}
 
-	var (
-		logId int64
-		logIndex int64
-		logTime time.Time
-		logName string
-		logRefid int64
-		logParticipantid int64
-		logAttributes map[string]string
-		logAttributeKey string
-		logAttributeValue string
-	)
-
-	l.logs = make([]Log, 0)
-
 	for logRows.Next() {
 		err = logRows.Scan(&logId, &logIndex, &logTime, &logName, &logRefid, &logParticipantid)
 		if err != nil {
@@ -204,9 +209,13 @@ func (l LogResource) getLogRange(request *restful.Request, response *restful.Res
 			logAttributes[logAttributeKey] = logAttributeValue
 		}
 
+		logAttributeRows.Close()
+
 		log := Log{Id: logId, Index: logIndex, Time: logTime, Name: logName, Refid: logRefid, Participantid: logParticipantid, Attributes: logAttributes}
 		l.logs = append(l.logs, log)
 	}
+
+	logRows.Close()
 
 	response.WriteEntity(l.logs)
 
@@ -218,6 +227,21 @@ func (l LogResource) getLatestLogs(request *restful.Request, response *restful.R
 	// TODO: Render all or have a limit + pagination?
 	start := time.Now()
 	configuration := readConfiguration()
+
+	var (
+		logId int64
+		logIndex int64
+		logTime time.Time
+		logName string
+		logRefid int64
+		logParticipantid int64
+		logAttributes map[string]string
+		logAttributeKey string
+		logAttributeValue string
+	)
+
+	l.logs = make([]Log, 0)
+
 
 	db, err := sql.Open("mysql", configuration.Datasource)
 	if err != nil {
@@ -247,20 +271,6 @@ func (l LogResource) getLatestLogs(request *restful.Request, response *restful.R
 		log.Println(err.Error())
 	}
 
-	var (
-		logId int64
-		logIndex int64
-		logTime time.Time
-		logName string
-		logRefid int64
-		logParticipantid int64
-		logAttributes map[string]string
-		logAttributeKey string
-		logAttributeValue string
-	)
-
-	l.logs = make([]Log, 0)
-
 	for logRows.Next() {
 		err = logRows.Scan(&logId, &logIndex, &logTime, &logName, &logRefid, &logParticipantid)
 		if err != nil {
@@ -281,9 +291,14 @@ func (l LogResource) getLatestLogs(request *restful.Request, response *restful.R
 			logAttributes[logAttributeKey] = logAttributeValue
 		}
 
+		logAttributeRows.Close()
+
 		log := Log{Id: logId, Index: logIndex, Time: logTime, Name: logName, Refid: logRefid, Participantid: logParticipantid, Attributes: logAttributes}
 		l.logs = append(l.logs, log)
 	}
+
+	logRows.Close()
+
 	response.WriteEntity(l.logs)
 	elapsed := time.Since(start)
 	log.Printf("Render getLatestLogs took %s", elapsed)

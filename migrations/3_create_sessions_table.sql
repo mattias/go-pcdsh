@@ -5,6 +5,7 @@ CREATE TABLE sessions (
   end_log_id int not null,
   start_time timestamp not null,
   end_time timestamp not null,
+  track_id int,
   log_count int,
   primary key (id),
   foreign key (start_log_id) references logs(id),

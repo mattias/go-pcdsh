@@ -10,7 +10,7 @@ import (
 )
 
 type Session struct {
-	Id, StartLogId, EndLogId, LogCount int
+	Id, StartLogId, EndLogId, TrackId, LogCount int
 	StartTime, EndTime                 time.Time
 }
 
@@ -68,9 +68,9 @@ type SessionResource struct {
 func (s SessionResource) RegisterTo(container *restful.Container) {
 	ws := new(restful.WebService)
 	ws.
-		Path("/session").
-		Consumes(restful.MIME_JSON).
-		Produces(restful.MIME_JSON)
+	Path("/session").
+	Consumes(restful.MIME_JSON).
+	Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/").To(s.getAllSessions))
 	ws.Route(ws.GET("/{id}").To(s.getSessionById))
@@ -97,18 +97,18 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 	}
 
 	var (
-		logId             int
-		logIndex          int
-		logTime           time.Time
-		logName           string
-		logRefid          int
-		logParticipantid  int
+		logId int
+		logIndex int
+		logTime time.Time
+		logName string
+		logRefid int
+		logParticipantid int
 		logAttributes     map[string]string
-		logAttributeKey   string
+		logAttributeKey string
 		logAttributeValue string
-		startId, endId    int
-		curSessionStage   string = "Practice1"
-		sessionStages            = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
+		startId, endId int
+		curSessionStage string = "Practice1"
+		sessionStages = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
 	)
 	compiledSession.Participants = make([]Participant, 0)
 
@@ -173,6 +173,8 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 
 			logAttributes[logAttributeKey] = logAttributeValue
 		}
+
+		logAttributeRows.Close()
 
 		switch logName {
 		case "StageChanged":
@@ -323,6 +325,8 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		}
 	}
 
+	logRows.Close()
+
 	response.WriteEntity(compiledSession)
 	SetCache("/session/compiled/"+sessionId, compiledSession)
 
@@ -358,25 +362,28 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 	}
 
 	var (
-		sessionId    int
-		logStartId   int
-		logEndId     int
+		sessionId int
+		logStartId int
+		logEndId int
 		logStartTime time.Time
-		logEndTime   time.Time
-		logCount     int
+		logEndTime time.Time
+		logTrackId int
+		logCount int
 	)
 
 	s.sessions = make([]Session, 0)
 
 	for sessionRows.Next() {
-		err = sessionRows.Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logCount)
+		err = sessionRows.Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logTrackId, &logCount)
 		if err != nil {
 			log.Println(err.Error())
 		}
 
-		session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, LogCount: logCount}
+		session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, TrackId: logTrackId, LogCount: logCount}
 		s.sessions = append(s.sessions, session)
 	}
+
+	sessionRows.Close()
 
 	response.WriteEntity(s.sessions)
 
@@ -420,15 +427,16 @@ func (s SessionResource) getSessionById(request *restful.Request, response *rest
 	defer sessionsOut.Close()
 
 	var (
-		sessionId    int
-		logStartId   int
-		logEndId     int
+		sessionId int
+		logStartId int
+		logEndId int
 		logStartTime time.Time
-		logEndTime   time.Time
-		logCount     int
+		logEndTime time.Time
+		logTrackId int
+		logCount int
 	)
 
-	err = sessionsOut.QueryRow(id).Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logCount)
+	err = sessionsOut.QueryRow(id).Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logTrackId, &logCount)
 	if err != nil {
 		log.Println(err.Error())
 
@@ -436,7 +444,7 @@ func (s SessionResource) getSessionById(request *restful.Request, response *rest
 		return
 	}
 
-	session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, LogCount: logCount}
+	session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, TrackId: logTrackId, LogCount: logCount}
 
 	response.WriteEntity(session)
 	SetCache("/session/"+id, session)

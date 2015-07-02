@@ -3,9 +3,11 @@ import (
 	"time"
 	"log"
 	"database/sql"
+	"strconv"
 )
 
 func hashSessions(configuration Configuration) {
+	log.Println("Hasher starting...")
 	db, err := sql.Open("mysql", configuration.Datasource)
 	if err != nil {
 		panic(err.Error())
@@ -35,7 +37,7 @@ func hashSessions(configuration Configuration) {
 	}
 	defer logAttributesOut.Close()
 
-	sessionsIns, err := db.Prepare("INSERT INTO sessions VALUES( ?, ?, ?, ?, ?, ? )")
+	sessionsIns, err := db.Prepare("INSERT INTO sessions VALUES( ?, ?, ?, ?, ?, ?, ? )")
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -50,6 +52,7 @@ func hashSessions(configuration Configuration) {
 		logStartTime time.Time
 		logEndId int64
 		logEndTime time.Time
+		logTrackId int
 		start time.Time
 		end_time time.Time
 		elapsed time.Duration
@@ -80,6 +83,26 @@ func hashSessions(configuration Configuration) {
 
 			logCount++
 
+			if logName == "SessionSetup" {
+				logAttributeRows, err := logAttributesOut.Query(logId)
+				if err != nil {
+					log.Println(err.Error())
+				}
+
+				for logAttributeRows.Next() {
+					err = logAttributeRows.Scan(&logAttributeKey, &logAttributeValue)
+					if err != nil {
+						log.Println(err.Error())
+					}
+
+					if logAttributeKey == "TrackId" {
+						logTrackId, _ = strconv.Atoi(logAttributeValue)
+						break
+					}
+				}
+				logAttributeRows.Close()
+			}
+
 			if logName == "StateChanged" {
 				logAttributeRows, err := logAttributesOut.Query(logId)
 				if err != nil {
@@ -94,25 +117,28 @@ func hashSessions(configuration Configuration) {
 
 					if logAttributeKey == "NewState" && logAttributeValue == "Loading" {
 						logStartId, logStartTime  = logId, logTime
-						logEndId, logCount = 0, 0 // Reset
+						logEndId, logCount, logTrackId = 0, 0, 0 // Reset
 					}
 
 					if logAttributeKey == "NewState" && logAttributeValue == "Returning" {
 						logEndId, logEndTime = logId, logTime
 					}
 				}
+				logAttributeRows.Close()
 			} else if logName == "SessionDestroyed" {
 				logEndId, logEndTime = logId, logTime
 			}
 
 			if logStartId > 0 && logEndId > 0 {
-				_, err = sessionsIns.Exec(nil, logStartId, logEndId, logStartTime, logEndTime, logCount)
+				_, err = sessionsIns.Exec(nil, logStartId, logEndId, logStartTime, logEndTime, logTrackId, logCount)
 				if err != nil {
 					log.Println(err.Error())
 				}
-				logStartId, logEndId, logCount = 0, 0, 0
+				logStartId, logEndId, logCount, logTrackId = 0, 0, 0, 0
 			}
 		}
+
+		logRows.Close()
 
 		elapsed = time.Since(start)
 		log.Printf("Hashing sessions took %s", elapsed)
