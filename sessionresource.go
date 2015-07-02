@@ -54,7 +54,7 @@ type Participant struct {
 }
 
 type CompiledSession struct {
-	Setup        []SessionSetup
+	Setup        SessionSetup
 	Participants []Participant
 }
 
@@ -95,7 +95,6 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		curSessionStage string = "Practice1"
 		sessionStages = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
 	)
-	compiledSession.Setup = make([]SessionSetup, 0)
 	compiledSession.Participants = make([]Participant, 0)
 
 	db, err := sql.Open("mysql", configuration.Datasource)
@@ -150,6 +149,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		if err != nil {
 			log.Println(err.Error())
 		}
+
 		logAttributes = make(map[string]string)
 		for logAttributeRows.Next() {
 			err = logAttributeRows.Scan(&logAttributeKey, &logAttributeValue)
@@ -164,6 +164,9 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		case "StageChanged":
 			curSessionStage = logAttributes["NewStage"]
 		case "SessionSetup":
+			if compiledSession.Setup.Flags != 0 {
+				break
+			}
 			Flags, _ := strconv.Atoi(logAttributes["Flags"])
 			GameMode, _ := strconv.Atoi(logAttributes["GameMode"])
 			GridSize, _ := strconv.Atoi(logAttributes["GridSize"])
@@ -175,7 +178,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			Race2Length, _ := strconv.Atoi(logAttributes["Race2Length"])
 			TrackId, _ := strconv.Atoi(logAttributes["TrackId"])
 			WarmupLength, _ := strconv.Atoi(logAttributes["WarmupLength"])
-			compiledSession.Setup = append(compiledSession.Setup, SessionSetup{
+			compiledSession.Setup = SessionSetup{
 				Flags: Flags,
 				GameMode: GameMode,
 				GridSize: GridSize,
@@ -187,7 +190,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 				Race2Length: Race2Length,
 				TrackId: TrackId,
 				WarmupLength: WarmupLength,
-			})
+			}
 		case "ParticipantCreated":
 			compiledSession.Participants = append(compiledSession.Participants, Participant{
 				Stages: make(map[string]*Stage),
@@ -207,6 +210,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 			}
 
 		case "ParticipantDestroyed":
+			// TODO: This doesn't seem to work very well, debug
 			var sliceIndex int = -1
 			for key := range compiledSession.Participants {
 				if compiledSession.Participants[key].Refid == logRefid {

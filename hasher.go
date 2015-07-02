@@ -29,6 +29,12 @@ func hashSessions(configuration Configuration) {
 	}
 	defer logsOut.Close()
 
+	logAttributesOut, err := db.Prepare("SELECT `key`, value FROM log_attributes WHERE log_id = ?")
+	if err != nil {
+		log.Println(err.Error())
+	}
+	defer logAttributesOut.Close()
+
 	sessionsIns, err := db.Prepare("INSERT INTO sessions VALUES( ?, ?, ?, ?, ?, ? )")
 	if err != nil {
 		log.Println(err.Error())
@@ -47,6 +53,8 @@ func hashSessions(configuration Configuration) {
 		start time.Time
 		end_time time.Time
 		elapsed time.Duration
+		logAttributeKey string
+		logAttributeValue string
 	)
 
 	for {
@@ -72,9 +80,27 @@ func hashSessions(configuration Configuration) {
 
 			logCount++
 
-			if logName == "SessionCreated" {
-				logStartId, logStartTime  = logId, logTime
-				logEndId, logCount = 0, 0 // Reset
+			if logName == "StateChanged" {
+				logAttributeRows, err := logAttributesOut.Query(logId)
+				if err != nil {
+					log.Println(err.Error())
+				}
+
+				for logAttributeRows.Next() {
+					err = logAttributeRows.Scan(&logAttributeKey, &logAttributeValue)
+					if err != nil {
+						log.Println(err.Error())
+					}
+
+					if logAttributeKey == "NewState" && logAttributeValue == "Loading" {
+						logStartId, logStartTime  = logId, logTime
+						logEndId, logCount = 0, 0 // Reset
+					}
+
+					if logAttributeKey == "NewState" && logAttributeValue == "Returning" {
+						logEndId, logEndTime = logId, logTime
+					}
+				}
 			} else if logName == "SessionDestroyed" {
 				logEndId, logEndTime = logId, logTime
 			}
