@@ -77,7 +77,7 @@ func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *
 		panic(err.Error())
 	}
 
-	sessionsOut, err := db.Prepare("SELECT start_log_id, end_log_id FROM sessions WHERE id = ? AND valid != 0")
+	sessionsOut, err := db.Prepare("SELECT start_log_id, end_log_id FROM sessions WHERE id = ? AND valid = 1")
 	if err != nil {
 		log.Println(err.Error())
 	}

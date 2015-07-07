@@ -125,7 +125,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		panic(err.Error())
 	}
 
-	sessionsOut, err := db.Prepare("SELECT start_log_id, end_log_id FROM sessions WHERE id = ? AND valid != 0")
+	sessionsOut, err := db.Prepare("SELECT start_log_id, end_log_id FROM sessions WHERE id = ? AND valid = 1")
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -352,7 +352,7 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 		panic(err.Error())
 	}
 
-	sessionsOut, err := db.Prepare("SELECT * FROM sessions ORDER BY `id` DESC WHERE valid != 0")
+	sessionsOut, err := db.Prepare("SELECT * FROM sessions ORDER BY `id` DESC WHERE valid = 1")
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -422,7 +422,7 @@ func (s SessionResource) getSessionById(request *restful.Request, response *rest
 		panic(err.Error())
 	}
 
-	sessionsOut, err := db.Prepare("SELECT * FROM sessions WHERE id = ? AND valid != 0")
+	sessionsOut, err := db.Prepare("SELECT * FROM sessions WHERE id = ? AND valid = 1")
 	if err != nil {
 		log.Println(err.Error())
 	}
