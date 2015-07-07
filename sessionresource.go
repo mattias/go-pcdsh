@@ -10,8 +10,8 @@ import (
 )
 
 type Session struct {
-	Id, StartLogId, EndLogId, TrackId, LogCount int
-	StartTime, EndTime                 time.Time
+	Id, StartLogId, EndLogId, TrackId, LogCount, Valid int
+	StartTime, EndTime                                 time.Time
 }
 
 type Lap struct {
@@ -68,9 +68,9 @@ type SessionResource struct {
 func (s SessionResource) RegisterTo(container *restful.Container) {
 	ws := new(restful.WebService)
 	ws.
-	Path("/session").
-	Consumes(restful.MIME_JSON).
-	Produces(restful.MIME_JSON)
+		Path("/session").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/").To(s.getAllSessions))
 	ws.Route(ws.GET("/{id}").To(s.getSessionById))
@@ -97,18 +97,18 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 	}
 
 	var (
-		logId int
-		logIndex int
-		logTime time.Time
-		logName string
-		logRefid int
-		logParticipantid int
+		logId             int
+		logIndex          int
+		logTime           time.Time
+		logName           string
+		logRefid          int
+		logParticipantid  int
 		logAttributes     map[string]string
-		logAttributeKey string
+		logAttributeKey   string
 		logAttributeValue string
-		startId, endId int
-		curSessionStage string = "Practice1"
-		sessionStages = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
+		startId, endId    int
+		curSessionStage   string = "Practice1"
+		sessionStages            = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
 	)
 	compiledSession.Participants = make([]Participant, 0)
 
@@ -125,7 +125,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		panic(err.Error())
 	}
 
-	sessionsOut, err := db.Prepare("SELECT start_log_id, end_log_id FROM sessions WHERE id = ?")
+	sessionsOut, err := db.Prepare("SELECT start_log_id, end_log_id FROM sessions WHERE id = ? AND valid != 0")
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -352,7 +352,7 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 		panic(err.Error())
 	}
 
-	sessionsOut, err := db.Prepare("SELECT * FROM sessions ORDER BY `id` DESC")
+	sessionsOut, err := db.Prepare("SELECT * FROM sessions ORDER BY `id` DESC WHERE valid != 0")
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -364,13 +364,13 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 	}
 
 	var (
-		sessionId int
-		logStartId int
-		logEndId int
+		sessionId    int
+		logStartId   int
+		logEndId     int
 		logStartTime time.Time
-		logEndTime time.Time
-		logTrackId int
-		logCount int
+		logEndTime   time.Time
+		logTrackId   int
+		logCount     int
 	)
 
 	s.sessions = make([]Session, 0)
@@ -422,20 +422,20 @@ func (s SessionResource) getSessionById(request *restful.Request, response *rest
 		panic(err.Error())
 	}
 
-	sessionsOut, err := db.Prepare("SELECT * FROM sessions WHERE id = ?")
+	sessionsOut, err := db.Prepare("SELECT * FROM sessions WHERE id = ? AND valid != 0")
 	if err != nil {
 		log.Println(err.Error())
 	}
 	defer sessionsOut.Close()
 
 	var (
-		sessionId int
-		logStartId int
-		logEndId int
+		sessionId    int
+		logStartId   int
+		logEndId     int
 		logStartTime time.Time
-		logEndTime time.Time
-		logTrackId int
-		logCount int
+		logEndTime   time.Time
+		logTrackId   int
+		logCount     int
 	)
 
 	err = sessionsOut.QueryRow(id).Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logTrackId, &logCount)

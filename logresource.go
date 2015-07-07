@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/emicklei/go-restful"
-	"time"
-	"log"
 	"database/sql"
+	"github.com/emicklei/go-restful"
 	_ "github.com/go-sql-driver/mysql"
+	"log"
+	"time"
 )
 
 type Log struct {
@@ -22,9 +22,9 @@ type LogResource struct {
 func (l LogResource) RegisterTo(container *restful.Container) {
 	ws := new(restful.WebService)
 	ws.
-	Path("/log").
-	Consumes(restful.MIME_JSON).
-	Produces(restful.MIME_JSON)
+		Path("/log").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/").To(l.getLatestLogs))
 	ws.Route(ws.GET("/range").To(l.getLogRange))
@@ -53,19 +53,18 @@ func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *
 	configuration := readConfiguration()
 
 	var (
-		logId int64
-		logIndex int64
-		logTime time.Time
-		logName string
-		logRefid int64
-		logParticipantid int64
-		logAttributes map[string]string
-		logAttributeKey string
+		logId             int64
+		logIndex          int64
+		logTime           time.Time
+		logName           string
+		logRefid          int64
+		logParticipantid  int64
+		logAttributes     map[string]string
+		logAttributeKey   string
 		logAttributeValue string
 	)
 
 	l.logs = make([]Log, 0)
-
 
 	db, err := sql.Open("mysql", configuration.Datasource)
 	if err != nil {
@@ -78,7 +77,7 @@ func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *
 		panic(err.Error())
 	}
 
-	sessionsOut, err := db.Prepare("SELECT start_log_id, end_log_id FROM sessions WHERE id = ?")
+	sessionsOut, err := db.Prepare("SELECT start_log_id, end_log_id FROM sessions WHERE id = ? AND valid != 0")
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -135,7 +134,7 @@ func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *
 	logRows.Close()
 
 	response.WriteEntity(l.logs)
-	SetCache("/log/session/" + sessionId, l)
+	SetCache("/log/session/"+sessionId, l)
 
 	elapsed := time.Since(start)
 	log.Printf("Render getLogRangeBySessionId took %s", elapsed)
@@ -148,14 +147,14 @@ func (l LogResource) getLogRange(request *restful.Request, response *restful.Res
 	configuration := readConfiguration()
 
 	var (
-		logId int64
-		logIndex int64
-		logTime time.Time
-		logName string
-		logRefid int64
-		logParticipantid int64
-		logAttributes map[string]string
-		logAttributeKey string
+		logId             int64
+		logIndex          int64
+		logTime           time.Time
+		logName           string
+		logRefid          int64
+		logParticipantid  int64
+		logAttributes     map[string]string
+		logAttributeKey   string
 		logAttributeValue string
 	)
 
@@ -229,19 +228,18 @@ func (l LogResource) getLatestLogs(request *restful.Request, response *restful.R
 	configuration := readConfiguration()
 
 	var (
-		logId int64
-		logIndex int64
-		logTime time.Time
-		logName string
-		logRefid int64
-		logParticipantid int64
-		logAttributes map[string]string
-		logAttributeKey string
+		logId             int64
+		logIndex          int64
+		logTime           time.Time
+		logName           string
+		logRefid          int64
+		logParticipantid  int64
+		logAttributes     map[string]string
+		logAttributeKey   string
 		logAttributeValue string
 	)
 
 	l.logs = make([]Log, 0)
-
 
 	db, err := sql.Open("mysql", configuration.Datasource)
 	if err != nil {
