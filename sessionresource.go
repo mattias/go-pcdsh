@@ -352,7 +352,7 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 		panic(err.Error())
 	}
 
-	sessionsOut, err := db.Prepare("SELECT * FROM sessions ORDER BY `id` DESC WHERE valid = 1")
+	sessionsOut, err := db.Prepare("SELECT * FROM sessions WHERE valid = 1 ORDER BY `id` DESC")
 	if err != nil {
 		log.Println(err.Error())
 	}
