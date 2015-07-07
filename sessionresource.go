@@ -371,17 +371,18 @@ func (s SessionResource) getAllSessions(request *restful.Request, response *rest
 		logEndTime   time.Time
 		logTrackId   int
 		logCount     int
+		logValid     int
 	)
 
 	s.sessions = make([]Session, 0)
 
 	for sessionRows.Next() {
-		err = sessionRows.Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logTrackId, &logCount)
+		err = sessionRows.Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logTrackId, &logCount, &logValid)
 		if err != nil {
 			log.Println(err.Error())
 		}
 
-		session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, TrackId: logTrackId, LogCount: logCount}
+		session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, TrackId: logTrackId, LogCount: logCount, Valid: logValid}
 		s.sessions = append(s.sessions, session)
 	}
 
@@ -436,9 +437,10 @@ func (s SessionResource) getSessionById(request *restful.Request, response *rest
 		logEndTime   time.Time
 		logTrackId   int
 		logCount     int
+		logValid     int
 	)
 
-	err = sessionsOut.QueryRow(id).Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logTrackId, &logCount)
+	err = sessionsOut.QueryRow(id).Scan(&sessionId, &logStartId, &logEndId, &logStartTime, &logEndTime, &logTrackId, &logCount, &logValid)
 	if err != nil {
 		log.Println(err.Error())
 
@@ -446,7 +448,7 @@ func (s SessionResource) getSessionById(request *restful.Request, response *rest
 		return
 	}
 
-	session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, TrackId: logTrackId, LogCount: logCount}
+	session := Session{Id: sessionId, StartLogId: logStartId, EndLogId: logEndId, StartTime: logStartTime, EndTime: logEndTime, TrackId: logTrackId, LogCount: logCount, Valid: logValid}
 
 	response.WriteEntity(session)
 	SetCache("/session/"+id, session)
