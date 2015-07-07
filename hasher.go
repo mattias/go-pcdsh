@@ -1,9 +1,10 @@
 package main
+
 import (
-	"time"
-	"log"
 	"database/sql"
+	"log"
 	"strconv"
+	"time"
 )
 
 func hashSessions(configuration Configuration) {
@@ -37,27 +38,28 @@ func hashSessions(configuration Configuration) {
 	}
 	defer logAttributesOut.Close()
 
-	sessionsIns, err := db.Prepare("INSERT INTO sessions VALUES( ?, ?, ?, ?, ?, ?, ? )")
+	sessionsIns, err := db.Prepare("INSERT INTO sessions VALUES( ?, ?, ?, ?, ?, ?, ?, ? )")
 	if err != nil {
 		log.Println(err.Error())
 	}
 	defer sessionsIns.Close()
 
 	var (
-		logId int64
-		logName string
-		logTime time.Time
-		logCount int64
-		logStartId int64
-		logStartTime time.Time
-		logEndId int64
-		logEndTime time.Time
-		logTrackId int
-		start time.Time
-		end_time time.Time
-		elapsed time.Duration
-		logAttributeKey string
+		logId             int64
+		logName           string
+		logTime           time.Time
+		logCount          int64
+		logStartId        int64
+		logStartTime      time.Time
+		logEndId          int64
+		logEndTime        time.Time
+		logTrackId        int
+		start             time.Time
+		end_time          time.Time
+		elapsed           time.Duration
+		logAttributeKey   string
 		logAttributeValue string
+		valid             int
 	)
 
 	for {
@@ -67,8 +69,6 @@ func hashSessions(configuration Configuration) {
 		if err != nil {
 			log.Println(err.Error())
 		}
-
-		log.Println(end_time)
 
 		logRows, err := logsOut.Query(end_time)
 		if err != nil {
@@ -82,6 +82,10 @@ func hashSessions(configuration Configuration) {
 			}
 
 			logCount++
+
+			if logName == "Results" {
+				valid = 1
+			}
 
 			if logName == "SessionSetup" {
 				logAttributeRows, err := logAttributesOut.Query(logId)
@@ -116,8 +120,8 @@ func hashSessions(configuration Configuration) {
 					}
 
 					if logAttributeKey == "NewState" && logAttributeValue == "Loading" {
-						logStartId, logStartTime  = logId, logTime
-						logEndId, logCount, logTrackId = 0, 0, 0 // Reset
+						logStartId, logStartTime = logId, logTime
+						logEndId, logCount, logTrackId, valid = 0, 0, 0, 0 // Reset
 					}
 
 					if logAttributeKey == "NewState" && logAttributeValue == "Returning" {
@@ -130,11 +134,11 @@ func hashSessions(configuration Configuration) {
 			}
 
 			if logStartId > 0 && logEndId > 0 {
-				_, err = sessionsIns.Exec(nil, logStartId, logEndId, logStartTime, logEndTime, logTrackId, logCount)
+				_, err = sessionsIns.Exec(nil, logStartId, logEndId, logStartTime, logEndTime, logTrackId, logCount, valid)
 				if err != nil {
 					log.Println(err.Error())
 				}
-				logStartId, logEndId, logCount, logTrackId = 0, 0, 0, 0
+				logStartId, logEndId, logCount, logTrackId, valid = 0, 0, 0, 0, 0
 			}
 		}
 
