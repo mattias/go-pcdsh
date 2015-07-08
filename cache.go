@@ -23,7 +23,7 @@ func GetCache(key string) (interface{}, error) {
 		return nil, fmt.Errorf("cache: '%s' did not exist", key)
 	}
 
-	if val.Expires < time.Now() {
+	if val.Expires.After(time.Now()) {
 		return nil, fmt.Errorf("cache: '%s' has expired", key)
 	}
 
