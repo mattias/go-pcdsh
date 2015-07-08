@@ -27,7 +27,6 @@ func (l LogResource) RegisterTo(container *restful.Container) {
 		Produces(restful.MIME_JSON)
 
 	ws.Route(ws.GET("/").To(l.getLatestLogs))
-	ws.Route(ws.GET("/range").To(l.getLogRange))
 	ws.Route(ws.GET("/session/{id}").To(l.getLogRangeBySessionId))
 
 	container.Add(ws)
@@ -138,88 +137,6 @@ func (l LogResource) getLogRangeBySessionId(request *restful.Request, response *
 
 	elapsed := time.Since(start)
 	log.Printf("Render getLogRangeBySessionId took %s", elapsed)
-}
-
-func (l LogResource) getLogRange(request *restful.Request, response *restful.Response) {
-	start := time.Now()
-	startId := request.QueryParameter("start")
-	endId := request.QueryParameter("end")
-	configuration := readConfiguration()
-
-	var (
-		logId             int64
-		logIndex          int64
-		logTime           time.Time
-		logName           string
-		logRefid          int64
-		logParticipantid  int64
-		logAttributes     map[string]string
-		logAttributeKey   string
-		logAttributeValue string
-	)
-
-	l.logs = make([]Log, 0)
-
-	db, err := sql.Open("mysql", configuration.Datasource)
-	if err != nil {
-		panic(err.Error())
-	}
-	defer db.Close()
-
-	err = db.Ping()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	logAttributesOut, err := db.Prepare("SELECT `key`, value FROM log_attributes WHERE log_id = ?")
-	if err != nil {
-		log.Println(err.Error())
-	}
-	defer logAttributesOut.Close()
-
-	logsOut, err := db.Prepare("SELECT * FROM logs WHERE id >= ? AND id <= ? ORDER BY `id` ASC")
-	if err != nil {
-		log.Println(err.Error())
-	}
-	defer logsOut.Close()
-
-	logRows, err := logsOut.Query(startId, endId)
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	for logRows.Next() {
-		err = logRows.Scan(&logId, &logIndex, &logTime, &logName, &logRefid, &logParticipantid)
-		if err != nil {
-			log.Println(err.Error())
-		}
-
-		logAttributeRows, err := logAttributesOut.Query(logId)
-		if err != nil {
-			log.Println(err.Error())
-		}
-		logAttributes = make(map[string]string)
-		for logAttributeRows.Next() {
-			err = logAttributeRows.Scan(&logAttributeKey, &logAttributeValue)
-			if err != nil {
-				log.Println(err.Error())
-			}
-
-			logAttributes[logAttributeKey] = logAttributeValue
-		}
-
-		logAttributeRows.Close()
-
-		log := Log{Id: logId, Index: logIndex, Time: logTime, Name: logName, Refid: logRefid, Participantid: logParticipantid, Attributes: logAttributes}
-		l.logs = append(l.logs, log)
-	}
-
-	logRows.Close()
-
-	response.WriteEntity(l.logs)
-
-	elapsed := time.Since(start)
-	log.Printf("Render getLogRange took %s", elapsed)
 }
 
 func (l LogResource) getLatestLogs(request *restful.Request, response *restful.Response) {
