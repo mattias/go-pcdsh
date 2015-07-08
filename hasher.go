@@ -64,6 +64,7 @@ func hashSessions(configuration Configuration) {
 
 	for {
 		start = time.Now()
+		logStartId, logEndId, logCount, logTrackId, valid = 0, 0, 0, 0, 0 // Make sure they are reset for this next loop
 
 		err = sessionsOut.QueryRow().Scan(&end_time)
 		if err != nil {
