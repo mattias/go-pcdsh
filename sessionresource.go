@@ -225,7 +225,16 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 				}
 			}
 		case "PlayerLeft":
-			fallthrough
+			var sliceIndex int = -1
+			for key := range compiledSession.Participants {
+				if compiledSession.Participants[key].Refid == logRefid {
+					sliceIndex = key
+					break
+				}
+			}
+			if sliceIndex >= 0 {
+				compiledSession.Participants = append(compiledSession.Participants[:sliceIndex], compiledSession.Participants[sliceIndex+1:]...)
+			}
 		case "ParticipantDestroyed":
 			var sliceIndex int = -1
 			for key := range compiledSession.Participants {
