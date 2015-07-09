@@ -49,6 +49,7 @@ type SessionSetup struct {
 }
 
 type Stage struct {
+	Time      time.Time
 	Name      string
 	Laps      []Lap
 	Incidents []interface{}
@@ -115,7 +116,8 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		logAttributeValue string
 		startId, endId    int
 		curSessionStage   string = "Practice1"
-		sessionStages            = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
+		stageTime         time.Time
+		sessionStages     = []string{"Practice1", "Practice2", "Qualifying", "Warmup", "Race1", "Race2"}
 	)
 	compiledSession.Participants = make([]Participant, 0)
 
@@ -186,10 +188,15 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 		switch logName {
 		case "StageChanged":
 			curSessionStage = logAttributes["NewStage"]
+			stageTime = logTime
+			for key := range compiledSession.Participants {
+				compiledSession.Participants[key].Stages[curSessionStage].Time = stageTime
+			}
 		case "SessionSetup":
 			if compiledSession.Setup.Flags != 0 {
 				break
 			}
+			stageTime = logTime
 			Flags, _ := strconv.Atoi(logAttributes["Flags"])
 			GameMode, _ := strconv.Atoi(logAttributes["GameMode"])
 			GridSize, _ := strconv.Atoi(logAttributes["GridSize"])
@@ -231,6 +238,7 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 						compiledSession.Participants[key].Stages[stage].Laps = make([]Lap, 0)
 						compiledSession.Participants[key].Stages[stage].Incidents = make([]interface{}, 0)
 					}
+					compiledSession.Participants[key].Stages[curSessionStage].Time = stageTime
 				}
 			}
 		case "PlayerLeft":
