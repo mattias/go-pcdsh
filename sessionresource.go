@@ -233,7 +233,15 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 				}
 			}
 			if sliceIndex >= 0 {
-				compiledSession.Participants = append(compiledSession.Participants[:sliceIndex], compiledSession.Participants[sliceIndex+1:]...)
+				deletable := true
+				for _, stage := range sessionStages {
+					if compiledSession.Participants[sliceIndex].Stages[stage].Result.State != "" {
+						deletable = false
+					}
+				}
+				if deletable {
+					compiledSession.Participants = append(compiledSession.Participants[:sliceIndex], compiledSession.Participants[sliceIndex+1:]...)
+				}
 			}
 		case "ParticipantDestroyed":
 			var sliceIndex int = -1
@@ -244,7 +252,15 @@ func (s SessionResource) getCompiledSessionById(request *restful.Request, respon
 				}
 			}
 			if sliceIndex >= 0 {
-				compiledSession.Participants = append(compiledSession.Participants[:sliceIndex], compiledSession.Participants[sliceIndex+1:]...)
+				deletable := true
+				for _, stage := range sessionStages {
+					if compiledSession.Participants[sliceIndex].Stages[stage].Result.State != "" {
+						deletable = false
+					}
+				}
+				if deletable {
+					compiledSession.Participants = append(compiledSession.Participants[:sliceIndex], compiledSession.Participants[sliceIndex+1:]...)
+				}
 			}
 		case "Lap":
 			CountThisLapTimes, _ := strconv.Atoi(logAttributes["CountThisLapTimes"])
