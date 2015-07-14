@@ -30,3 +30,10 @@ Then change the configuration in conf.json and dbconfig.yml.
 conf.json needs to be in the same directory as the executable.
 
 Next up just run go-pcdsh.
+
+## What can it do?
+
+Visit http://localhost:8080/session to see all available games
+
+Visit http://localhost:8080/session/compiled/{game-id} to see the game compiled into a nice structure, game-id is taken from the /session list
+Example: http://localhost:8080/session/compiled/1
