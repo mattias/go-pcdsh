@@ -31,7 +31,7 @@ func main() {
 	wsContainer.Filter(wsContainer.OPTIONSFilter)
 
 	log.Printf("Start listening on localhost:" + configuration.Port)
-	server := &http.Server{Addr: configuration.Port, Handler: wsContainer}
+	server := &http.Server{Addr: ":" + configuration.Port, Handler: wsContainer}
 	log.Fatal(server.ListenAndServe())
 }
 

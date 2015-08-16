@@ -2,6 +2,7 @@ package main
 
 type Configuration struct {
 	BaseUrl    string
+	Port       string
 	Datasource string
 }
 
